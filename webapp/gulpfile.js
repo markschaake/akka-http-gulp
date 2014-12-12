@@ -2,6 +2,7 @@ var gulp = require('gulp');
 var gutil = require('gulp-util');
 var watchify = require('watchify');
 var browserify = require('browserify');
+var browserifyShim = require('browserify-shim');
 var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
 var uglify = require('gulp-uglify');
@@ -10,6 +11,8 @@ var sourcemaps = require('gulp-sourcemaps');
 var log = gutil.log;
 var browserSync = require('browser-sync');
 var reload = browserSync.reload;
+
+process.env.BROWSERIFYSHIM_DIAGNOSTICS=1;
 
 var getBundleName = function () {
   var version = require('./package.json').version;
@@ -45,19 +48,18 @@ gulp.task('serve', ['watch'], function() {
   browserSync({
     proxy: 'insurance.dev:8080'
   });
-
   return gulp.watch(['**/*.html', '**/*.less', '**/*.css', '**/*.js'], {cwd: 'dist'}, reload);
 });
 
 var processBundle = function(bundler) {
   var bundle = function() {
+    log('Bundling JS');
     return bundler
       .bundle()
       .on('error', gutil.log.bind(gutil, 'Browserify Error'))
       .pipe(source(getBundleName() + '.js'))
       .pipe(buffer())
       .pipe(sourcemaps.init({loadMaps: true}))
-    // Add transformation tasks to the pipeline here.
       .pipe(uglify())
       .pipe(sourcemaps.write('./'))
       .pipe(gulp.dest('./dist'));
@@ -65,7 +67,7 @@ var processBundle = function(bundler) {
   return bundle();
 };
 
-gulp.task('javascript', function() {
+gulp.task('js', function() {
   var bundler = browserify({
     entries: ['./src/index.js'],
     debug: true
@@ -75,13 +77,7 @@ gulp.task('javascript', function() {
 
 gulp.task('watch-js', function() {
   var bundler = watchify(browserify('./src/index.js', watchify.args));
-  // Optionally, you can apply transforms
-  // and other configuration options on the
-  // bundler just as you would with browserify
-  //bundler.transform('brfs');
-
   var rebundle = function() {
-    log('Rebundling');
     return processBundle(bundler);
   };
   bundler.on('update', rebundle);
@@ -90,6 +86,4 @@ gulp.task('watch-js', function() {
 
 gulp.task('watch', ['watch-html', 'watch-js', 'watch-less']);
 
-gulp.task('default', ['javascript'], function() {
-  //console.log("fooy");
-});
+gulp.task('default', ['js', 'html', 'less']);

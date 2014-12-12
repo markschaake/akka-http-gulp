@@ -1,3 +1,12 @@
-var foo = require('./foo');
+(function() {
+  'use strict';
+  var angular = require('angular');
+  var console = require('console');
+  console.log(require('./navbar'));
 
-foo.doIt();
+  var mod = angular
+        .module('main', [require('./foo')])
+        .controller('MainController', ['FooService', function(foo) {
+          foo.doIt();
+        }]);;
+})();
