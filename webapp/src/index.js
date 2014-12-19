@@ -5,8 +5,11 @@
   console.log(require('./navbar'));
 
   var mod = angular
-        .module('main', [require('./foo')])
+        .module('main', [
+          require('./foo'),
+          require('./navbar')
+        ])
         .controller('MainController', ['FooService', function(foo) {
           foo.doIt();
-        }]);;
+        }]);
 })();

@@ -2,14 +2,14 @@ var console = require('console');
 var http = require('./http');
 var angular = require('angular');
 
-var Foo = function() {
+var Foo = function(API_URL) {
   this.doIt = function() {
     console.log('gonna do it');
-    http.get('/api/1/foos').then(function(js) {
+    http.get(API_URL + '/foos').then(function(js) {
       console.log('did it yo', js);
     });
 
-    http.get('/api/1').then(function(js) {
+    http.get(API_URL).then(function(js) {
       console.log('did it again yo', js);
     });
 
@@ -19,7 +19,7 @@ var Foo = function() {
       baz: 150.5
     };
 
-    http.post('/api/1/foos', data).then(
+    http.post(API_URL + '/foos', data).then(
       function(js) {
         console.log('posted yo', js);
       },
@@ -31,5 +31,5 @@ var Foo = function() {
 };
 
 module.exports = angular
-  .module('foo', [])
-  .service('FooService', Foo).name;
+  .module('foo', [require('./config')])
+  .service('FooService', ['API_URL', Foo]).name;

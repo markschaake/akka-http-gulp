@@ -26,7 +26,7 @@
             responseURL: request.responseURL
           });
         }
-      }
+      };
       request.send(body);
     });
   };

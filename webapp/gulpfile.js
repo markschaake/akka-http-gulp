@@ -1,18 +1,21 @@
-var gulp = require('gulp');
-var gutil = require('gulp-util');
-var watchify = require('watchify');
+var browserSync = require('browser-sync');
 var browserify = require('browserify');
 var browserifyShim = require('browserify-shim');
-var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
-var uglify = require('gulp-uglify');
+var gulp = require('gulp');
+var gutil = require('gulp-util');
+var jshint = require('gulp-jshint');
 var less = require('gulp-less');
+var source = require('vinyl-source-stream');
 var sourcemaps = require('gulp-sourcemaps');
+var stringify = require('stringify');
+var uglify = require('gulp-uglify');
+var watchify = require('watchify');
+
 var log = gutil.log;
-var browserSync = require('browser-sync');
 var reload = browserSync.reload;
 
-process.env.BROWSERIFYSHIM_DIAGNOSTICS=1;
+var prod = process.env.NODE_ENV === 'prod';
 
 var getBundleName = function () {
   var version = require('./package.json').version;
@@ -43,12 +46,11 @@ gulp.task('watch-less', ['less'], function() {
   return gulp.watch('src/**/*.less', ['less']);
 });
 
-// watch files for changes and reload
-gulp.task('serve', ['watch'], function() {
-  browserSync({
-    proxy: 'insurance.dev:8080'
-  });
-  return gulp.watch(['**/*.html', '**/*.less', '**/*.css', '**/*.js'], {cwd: 'dist'}, reload);
+gulp.task('lint', function() {
+  return gulp.src(['src/**/*.js', 'gulpfile.js'])
+    .pipe(jshint())
+    .pipe(jshint.reporter('jshint-stylish'))
+    .pipe(jshint.reporter('fail'));
 });
 
 var processBundle = function(bundler) {
@@ -67,16 +69,22 @@ var processBundle = function(bundler) {
   return bundle();
 };
 
-gulp.task('js', function() {
-  var bundler = browserify({
+var createBundler = function() {
+  return browserify({
     entries: ['./src/index.js'],
-    debug: true
-  });
-  return processBundle(bundler);
+    debug: !prod,
+    cache: {},
+    packageCache: {},
+    fullPaths: true
+  }).transform(stringify({ extensions:['.html'], minify: true }));
+};
+
+gulp.task('js', ['lint'], function() {
+  return processBundle(createBundler());
 });
 
 gulp.task('watch-js', function() {
-  var bundler = watchify(browserify('./src/index.js', watchify.args));
+  var bundler = watchify(createBundler());
   var rebundle = function() {
     return processBundle(bundler);
   };
@@ -85,5 +93,13 @@ gulp.task('watch-js', function() {
 });
 
 gulp.task('watch', ['watch-html', 'watch-js', 'watch-less']);
+
+// watch files for changes and reload
+gulp.task('serve', ['watch'], function() {
+  browserSync({
+    proxy: 'insurance.dev:8080'
+  });
+  return gulp.watch(['**/*.html', '**/*.less', '**/*.css', '**/*.js'], {cwd: 'dist'}, reload);
+});
 
 gulp.task('default', ['js', 'html', 'less']);
